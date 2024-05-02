@@ -62,6 +62,20 @@ export default function Login({ setIsSignedIn, setUserId, auth }) {
 			});
 	};
 
+	/*
+	const handleLogin = () => {
+		console.log("Login button pressed");
+
+		//Sign in the user
+		const userId = signInWithEmailAndPassword(auth, emailLogin, passwordLogin);
+
+		//Empty input field states:???
+		//setEmailLogin("");
+		//setPasswordLogin("");
+		setIsSignedIn(true); // Simulated successful login
+	};
+	*/
+
 	//Register:
 
 	const handleRegister = async () => {
@@ -87,6 +101,116 @@ export default function Login({ setIsSignedIn, setUserId, auth }) {
 			console.error("Error in registration:", errorCode, errorMessage);
 		}
 	};
+
+	//v2
+	/*
+	const handleRegister = async () => {
+		createUserWithEmailAndPassword(auth, emailLogin, passwordLogin)
+		  .then((userCredential) => {
+			// Registered and signed in successfully
+			const user = userCredential.user;
+
+			// Generate and save RSA keys for the registered user
+			await generateRSAKeys(user);
+			setIsSignedIn(true); // Update state upon successful registration
+
+
+			setModalVisible(false); // Close modal after registration
+		  })
+		  .catch((error) => {
+			const errorCode = error.code;
+			const errorMessage = error.message;
+			// ..
+			console.error(
+				"Error in registration - code:",
+				errorCode,
+				", message: ",
+				errorMessage
+			);;
+		  });
+	  };
+	  */
+
+	/*
+	const handleRegister = async () => {
+		// Perform registration logic
+		console.log("Register button pressed");
+		setModalVisible(false); // Close the modal after registration
+		//setEmailLogin("");
+		//setPasswordLogin("");
+
+		//Create the user account:
+
+		const userId = createUserWithEmailAndPassword(
+			auth,
+			emailLogin,
+			passwordLogin
+		);
+
+		// Generate and save RSA keys for the registered user
+		await generateRSAKeys(userId);
+
+		
+		try {
+			// Perform user registration (create user account in your app backend)
+			const userId = "unique_user_id"; // Replace with the actual user ID
+
+			// Generate and save RSA keys for the registered user
+			await generateRSAKeys(userId);
+
+			// Additional registration logic (e.g., store user profile, navigate to home screen)
+			console.log("User registered successfully(create keys):", userId);
+		} catch (error) {
+			console.error("Error registering user:", error);
+		}
+		
+	};
+    */
+	//Sign in user:
+	/*
+	signInWithEmailAndPassword(auth, emailLogin, passwordLogin)
+		.then((userCredential) => {
+			// Signed in
+			const user = userCredential.user;
+			// ...
+			return user;
+		})
+		.catch((error) => {
+			const errorCode = error.code;
+			const errorMessage = error.message;
+
+			console.error(
+				"Error signing in user - code:",
+				errorCode,
+				", message: ",
+				errorMessage
+			);
+		});
+		*/
+
+	//Create user:
+	/*
+	createUserWithEmailAndPassword(auth, emailLogin, passwordLogin)
+		.then((userCredential) => {
+			// Signed up
+			const user = userCredential.user;
+			// ...
+			console.log("User registered successfully(userCreation):", user);
+
+			return user;
+		})
+		.catch((error) => {
+			const errorCode = error.code;
+			const errorMessage = error.message;
+			// ..
+			console.error(
+				"Error registering user - code:",
+				errorCode,
+				", message: ",
+				errorMessage
+			);
+		});
+		*/
 
 	//Generate RSA keys:
 	//import RSAKey from "react-native-rsa/src/RSA";

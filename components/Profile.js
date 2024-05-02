@@ -20,7 +20,7 @@ import {
 	remove,
 } from "firebase/database";
 
-//>>>Pass user email here???
+//>>>Pass user email here instead of id.
 
 export default function Profile({ database, userId }) {
 	//--States--//

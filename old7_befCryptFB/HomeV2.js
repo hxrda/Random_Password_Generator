@@ -201,7 +201,19 @@ export default function Home({ database, userId }) {
 				const generatorResult = data[0].password;
 				setGeneratedPassword(generatorResult);
 
-				//Fetch public key & Handle crypting:
+				//>>>Handle crypting password    !!!
+				// Encrypt the password using RSA public key before savin
+				//>>>MODIFY:  !!!
+
+				//THIS?:
+				/*
+				setRecord((prevRecord) => ({
+					...prevRecord,
+					cryptedPassword: generatorResult,
+				}));
+				*/
+
+				//Fetch public key:
 				const publicKey = await SecureStore.getItemAsync(`publicKey_${userId}`);
 				if (!publicKey) {
 					console.error("Public key not found for user:", userId);
@@ -227,6 +239,27 @@ export default function Home({ database, userId }) {
 
 	//Save data to Database:
 	const handleSave = async () => {
+		//>>>Create a user collection in the final ver instead  !!!
+		// Encrypt the password using RSA public key before saving
+		/*
+		const publicKey = await SecureStore.getItemAsync(`publicKey_${userId}`);
+		if (!publicKey) {
+			console.error("Public key not found for user:", userId);
+			return;
+		}
+
+		const rsa = new RSAKey();
+		rsa.setPublicString(publicKey);
+
+		const encryptedPassword = rsa.encrypt(record.cryptedPassword);
+
+		//Update record with encrypted password:
+		setRecord((prevRecord) => ({
+			...prevRecord,
+			cryptedPassword: encryptedPassword,
+		}));
+		*/
+
 		push(ref(database, `/records/${userId}`), record);
 
 		//Snackbar response:
