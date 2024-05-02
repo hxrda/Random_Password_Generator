@@ -77,6 +77,7 @@ export default function App() {
 	//--States--//
 	const [isSignedIn, setIsSignedIn] = useState(false);
 	const [userId, setUserId] = useState(null); // State to hold the user ID
+	const [userEmail, setUserEmail] = useState("");
 
 	//--Functions--//
 
@@ -96,6 +97,7 @@ export default function App() {
 									{...props}
 									setIsSignedIn={setIsSignedIn}
 									setUserId={setUserId}
+									setUserEmail={setUserEmail}
 									auth={auth}
 								/>
 							)}
@@ -154,7 +156,17 @@ export default function App() {
 						<Tab.Screen
 							name="Profile"
 							//component={Profile}
-							children={() => <Profile database={database} userId={userId} />}
+							children={() => (
+								<Profile
+									database={database}
+									userId={userId}
+									setUserId={setUserId}
+									setIsSignedIn={setIsSignedIn}
+									userEmail={userEmail}
+									setUserEmail={setUserEmail}
+									auth={auth}
+								/>
+							)}
 							options={{
 								headerTitle: "USER PROFILE",
 							}}

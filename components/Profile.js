@@ -20,9 +20,19 @@ import {
 	remove,
 } from "firebase/database";
 
+import { getAuth, signOut } from "firebase/auth";
+
 //>>>Pass user email here instead of id.
 
-export default function Profile({ database, userId }) {
+export default function Profile({
+	database,
+	userId,
+	setUserId,
+	setIsSignedIn,
+	userEmail,
+	setUserEmail,
+	auth,
+}) {
 	//--States--//
 	const items = [
 		{ title: "Account", icon: "account-outline" },
@@ -33,8 +43,25 @@ export default function Profile({ database, userId }) {
 	];
 
 	//--Functions--//
+	/*
 	const handleLogout = () => {
 		//TBA
+	};
+	*/
+	const handleLogout = async () => {
+		try {
+			await signOut(auth);
+			// After successful logout, navigate back to the Login screen or perform any necessary actions
+			// For example, you can reset the user state
+			setIsSignedIn(false);
+			setUserId(null);
+			setUserEmail("");
+
+			console.log("Logout successful");
+		} catch (error) {
+			console.error("Error signing out:", error);
+			// Handle error if needed
+		}
 	};
 
 	//--Rendering--//
@@ -42,7 +69,7 @@ export default function Profile({ database, userId }) {
 		<View style={styles.container}>
 			<View style={styles.upperContainer}>
 				<Icon name="account-circle" size={100} color="#a9b1b6" />
-				<Text style={{ marginLeft: 12 }}>Hello {userId}!</Text>
+				<Text style={{ marginLeft: 12 }}>Hello {userEmail}!</Text>
 			</View>
 
 			<FlatList

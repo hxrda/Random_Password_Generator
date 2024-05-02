@@ -32,7 +32,12 @@ import {
 //import RSAKey from "react-native-rsa/src/RSA";
 import * as SecureStore from "expo-secure-store";
 
-export default function Login({ setIsSignedIn, setUserId, auth }) {
+export default function Login({
+	setIsSignedIn,
+	setUserId,
+	setUserEmail,
+	auth,
+}) {
 	//--States--//
 	const [emailLogin, setEmailLogin] = useState("");
 	const [passwordLogin, setPasswordLogin] = useState("");
@@ -49,9 +54,11 @@ export default function Login({ setIsSignedIn, setUserId, auth }) {
 			.then((userCredential) => {
 				// Signed in successfully
 				const user = userCredential.user;
+				const userEmail = user.email;
 
 				setUserId(user.uid);
 				setIsSignedIn(true); // Update state upon successful login
+				setUserEmail(userEmail);
 			})
 			.catch((error) => {
 				// Handle login error
@@ -72,12 +79,15 @@ export default function Login({ setIsSignedIn, setUserId, auth }) {
 				passwordLogin
 			); // Location of createUserWithEmailAndPassword
 			const user = userCredential.user;
+			const userEmail = user.email;
 
 			// Generate and save RSA keys for the registered user
 			await generateRSAKeys(user.uid); // Location of generateRSAKeys
 
 			// Set the user ID state in App.js
 			setUserId(user.uid);
+
+			setUserEmail(userEmail);
 
 			setIsSignedIn(true); // Update state upon successful registration
 			setModalVisible(false); // Close modal after registration
