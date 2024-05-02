@@ -21,14 +21,10 @@ import {
 	remove,
 } from "firebase/database";
 
-//import CryptoJS from "crypto-js";
-import * as SecureStore from "expo-secure-store";
-
 export default function Vault({ database, userId }) {
 	//--States--//
 	//Credentials:
 	const [records, setRecords] = useState([]);
-	const [decryptedPassword, setDecryptedPassword] = useState([]);
 
 	//Snackbar:
 	const [snackbarVisible, setSnackbarVisible] = useState(false);
@@ -84,39 +80,11 @@ export default function Vault({ database, userId }) {
 		}
 	};
 
-	//Handle decrypting password:
-	const decryptPassword = async (encrypted) => {
-		try {
-			//Get key:
-			const secretKey = await SecureStore.getItemAsync(`secretKey_${userId}`);
-			if (!secretKey) {
-				console.error("Public key not found for user, Decryption:", userId);
-				return "";
-			}
-
-			//Decrypt:
-			var CryptoJS = require("crypto-js");
-			const bytes = CryptoJS.AES.decrypt(encrypted, secretKey);
-			var decrypted = bytes.toString(CryptoJS.enc.Utf8);
-
-			//return bytes.toString(CryptoJS.enc.Utf8);
-			if (!decrypted) {
-				console.error("Decryption failed or invalid data");
-				return ""; // Return empty string on decryption failure or invalid data
-			}
-
-			return decrypted;
-		} catch (error) {
-			console.error("Error decrypting password:", error);
-			return ""; // Return empty string on decryption error
-		}
-	};
-
 	//Read data:
 	useEffect(() => {
 		setLoading(true);
 
-		onValue(ref(database, `/records/${userId}`), async (snapshot) => {
+		onValue(ref(database, `/records/${userId}`), (snapshot) => {
 			try {
 				if (snapshot.exists()) {
 					const data = snapshot.val();
@@ -128,31 +96,11 @@ export default function Vault({ database, userId }) {
 					//>>>> Handle decrypting password!!!
 
 					//V2
-					const dataWithKeys = await Promise.all(
-						Object.values(data).map(async (obj, index) => {
-							//Calc days difference before storing it in to data with keys
-							const differenceInDays = calculateDaysDifference(obj.dateCreated);
+					const dataWithKeys = Object.values(data).map((obj, index) => {
+						const differenceInDays = calculateDaysDifference(obj.dateCreated);
 
-							// Decrypt password
-							const decryptedPassword = await decryptPassword(
-								obj.cryptedPassword
-							);
-
-							return {
-								...obj,
-								key: keys[index],
-								daysDiff: differenceInDays,
-								decryptedPassword: decryptedPassword,
-							};
-						})
-					);
-
-					// Decrypt the password before storing it in dataWithKeys
-					/*
-					const decryptedPassword = decryptPassword(
-						dataWithKeys.cryptedPassword
-					);
-					*/
+						return { ...obj, key: keys[index], daysDiff: differenceInDays };
+					});
 
 					//V1
 					//Combine keys with data:
@@ -170,17 +118,14 @@ export default function Vault({ database, userId }) {
 					}));
 					*/
 					setRecords(dataWithKeys);
-					//setDecryptedPassword(decryptedPassword);
 					setLoading(false);
 					console.log(records);
 				} else {
 					console.log("No data available");
 					setRecords([]);
-					setLoading(false);
 				}
 			} catch (error) {
 				console.error("Error in fetching data", error);
-				setLoading(false);
 			}
 		});
 	}, []);
@@ -238,14 +183,14 @@ export default function Vault({ database, userId }) {
 											{item.userId}
 										</ListItem.Subtitle>
 										<ListItem.Subtitle style={styles.listSubtitle}>
-											{item.decryptedPassword}
+											{item.cryptedPassword}
 										</ListItem.Subtitle>
 										<Icon
 											name="content-copy"
 											type="material-community"
 											color="#676668"
 											onPress={() => {
-												copyToClipboard(item.decryptedPassword);
+												copyToClipboard(item.cryptedPassword);
 											}}
 										/>
 									</>

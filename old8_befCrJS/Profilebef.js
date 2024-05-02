@@ -23,7 +23,6 @@ import {
 import { getAuth, signOut } from "firebase/auth";
 
 //>>>Pass user email here instead of id.
-//
 
 export default function Profile({
 	database,

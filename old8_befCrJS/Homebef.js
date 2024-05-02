@@ -26,8 +26,7 @@ import Slider from "@react-native-community/slider";
 
 //OG status bar: <StatusBar style="auto" />
 
-//import { RSAKey } from "react-native-rsa";
-import CryptoJS from "crypto-js";
+import { RSAKey } from "react-native-rsa";
 import * as SecureStore from "expo-secure-store";
 
 import {
@@ -77,17 +76,10 @@ export default function Home({ database, userId }) {
 	//Snackbar:
 	const [snackbarVisible, setSnackbarVisible] = React.useState(false);
 
-	//Dialog for password:
+	//Dialog:
 	const [dialogVisible, setDialogVisible] = React.useState(false);
 	const dialogAlert =
 		"There is no content chosen for the password.\n\nPlease turn at least one of the switches on and try again.";
-
-	//Dialog for save:
-	const [saveDialogVisible, setSaveDialogVisible] = React.useState(false);
-	const dialogSaveAlert = "Please generate a password first.";
-
-	//Check that data for saving ok:
-	const [isPasswordGenerated, setIsPasswordGenerated] = useState(false);
 
 	//Additionals:
 	const [focusedInput, setFocusedInput] = useState(null);
@@ -177,12 +169,9 @@ export default function Home({ database, userId }) {
 		}
 	};
 
-	//Handle dialogs:
+	//Handle dialog:
 	const showDialog = () => setDialogVisible(true);
 	const hideDialog = () => setDialogVisible(false);
-
-	const showSaveDialog = () => setSaveDialogVisible(true);
-	const hideSaveDialog = () => setSaveDialogVisible(false);
 
 	//Fetch API:
 	const generatePassword = () => {
@@ -211,48 +200,25 @@ export default function Home({ database, userId }) {
 			.then(async (data) => {
 				const generatorResult = data[0].password;
 				setGeneratedPassword(generatorResult);
-				setIsPasswordGenerated(true);
 
-				try {
-					//Fetch public key & Handle crypting:
-					const secretKey = await SecureStore.getItemAsync(
-						`secretKey_${userId}`
-					);
-					if (!secretKey) {
-						console.error("Public key not found for user, Encryption:", userId);
-						return;
-					}
-
-					/*
+				//Fetch public key & Handle crypting:
 				const publicKey = await SecureStore.getItemAsync(`publicKey_${userId}`);
 				if (!publicKey) {
 					console.error("Public key not found for user:", userId);
 					return;
 				}
-				*/
 
-					//Encrypt generated password:
-					//var CryptoJS = require("crypto-js");
-					const encryptedPassword = CryptoJS.AES.encrypt(
-						generatorResult,
-						secretKey // Use a secure key for encryption
-					).toString();
-
-					/*
 				const rsa = new RSAKey();
 				rsa.setPublicString(publicKey);
 
 				const encryptedPassword = rsa.encrypt(generatorResult);
-				*/
 
-					//Update record with encrypted password:
-					setRecord((prevRecord) => ({
-						...prevRecord,
-						cryptedPassword: encryptedPassword,
-					}));
-				} catch (error) {
-					console.error("Error retrieving secretKey:", error);
-				}
+				//Update record with encrypted password:
+				setRecord((prevRecord) => ({
+					...prevRecord,
+					cryptedPassword: encryptedPassword,
+				}));
+
 				//
 			})
 
@@ -261,12 +227,6 @@ export default function Home({ database, userId }) {
 
 	//Save data to Database:
 	const handleSave = async () => {
-		if (!isPasswordGenerated) {
-			// If password is not generated, show dialog and return
-			showSaveDialog();
-			return;
-		}
-
 		push(ref(database, `/records/${userId}`), record);
 
 		//Snackbar response:
@@ -280,7 +240,6 @@ export default function Home({ database, userId }) {
 			dateCreated: "",
 		});
 		setGeneratedPassword("");
-		setIsPasswordGenerated(false);
 		setUpperCaseSwitchOn(false);
 		setLowerCaseSwitchOn(false);
 		setNumbersSwitchOn(false);
@@ -424,28 +383,6 @@ export default function Home({ database, userId }) {
 							</Dialog.Content>
 							<Dialog.Actions>
 								<Button onPress={hideDialog} labelStyle={{ color: "#581845" }}>
-									Close
-								</Button>
-							</Dialog.Actions>
-						</Dialog>
-					</Portal>
-				</View>
-
-				<View>
-					<Portal>
-						<Dialog
-							visible={saveDialogVisible}
-							onDismiss={hideSaveDialog}
-							style={{ backgroundColor: "#efedf1" }}
-						>
-							<Dialog.Content>
-								<Text variant="bodyMedium">{dialogSaveAlert}</Text>
-							</Dialog.Content>
-							<Dialog.Actions>
-								<Button
-									onPress={hideSaveDialog}
-									labelStyle={{ color: "#581845" }}
-								>
 									Close
 								</Button>
 							</Dialog.Actions>

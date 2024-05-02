@@ -23,23 +23,8 @@ import {
 import { Feather } from "@expo/vector-icons";
 //import { Header } from "@rneui/themed";
 
-/*
- In order to persist auth state, install the package
-"@react-native-async-storage/async-storage" and provide it to
-initializeAuth:
-
-import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
-import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
-const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
-});
-
-*/
-
 // Import the functions you need from the SDKs you need
 import * as SecureStore from "expo-secure-store";
-import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
-//import { initializeAuth, getReactNativePersistence } from "firebase/auth";
 
 import {
 	API_KEY,
@@ -62,11 +47,7 @@ import {
 	onValue,
 	remove,
 } from "firebase/database";
-import {
-	getAuth,
-	initializeAuth,
-	getReactNativePersistence,
-} from "firebase/auth";
+import { getAuth } from "firebase/auth";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 

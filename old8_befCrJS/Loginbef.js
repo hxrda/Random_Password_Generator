@@ -32,8 +32,6 @@ import {
 //import RSAKey from "react-native-rsa/src/RSA";
 import * as SecureStore from "expo-secure-store";
 
-import * as Crypto from "expo-crypto";
-
 export default function Login({
 	setIsSignedIn,
 	setUserId,
@@ -104,7 +102,7 @@ export default function Login({
 	//import RSAKey from "react-native-rsa/src/RSA";
 	const generateRSAKeys = async (userId) => {
 		try {
-			/*
+			// @ts-ignore
 			const RSAKey = require("react-native-rsa");
 			const bits = 1024; // Specify the bit length of the key pair
 			const exponent = "10001"; //must be a string. This is hex string. decimal = 65537
@@ -114,24 +112,10 @@ export default function Login({
 
 			const publicKey = rsa.getPublicString(); // Get the public key as a string/Return json encoded string
 			const privateKey = rsa.getPrivateString(); // Get the private key as a string/Return json encoded string
-			*/
-
-			//const publicKey = crypto.randomBytes(32).toString("base64"); // Generate a random public key
-			//const privateKey = crypto.randomBytes(32).toString("base64"); // Generate a random private key
-
-			//Generate keys:
-			const secretKey = Crypto.randomUUID();
-			//const publicKey = Crypto.randomUUID();
-			//const privateKey = Crypto.randomUUID();
-
-			console.log("Secret key:", secretKey);
-			//console.log("Public key:", publicKey);
-			//console.log("Private key:", privateKey);
 
 			// Store the keys securely associated with the user ID
-			await SecureStore.setItemAsync(`secretKey_${userId}`, secretKey);
-			//await SecureStore.setItemAsync(`publicKey_${userId}`, publicKey);
-			//await SecureStore.setItemAsync(`privateKey_${userId}`, privateKey);
+			await SecureStore.setItemAsync(`publicKey_${userId}`, publicKey);
+			await SecureStore.setItemAsync(`privateKey_${userId}`, privateKey);
 
 			console.log(
 				"RSA keys generated and saved successfully for user:",
