@@ -1,0 +1,3 @@
+A password manager application built with Expo and React Native. The app generates random passwords and securely stores them in Firebase Realtime Database, along with associated provider and username information.
+
+User authentication is managed through Firebase, providing each user with access to their encrypted password information based on their unique ID. Random passwords are generated with PasswordWolf API while encryption and decryption are implemented using the crypto-js library, which adheres to cryptographic standards. Expo Crypto is used to generate random keys associated with user IDs for encryption and decryption processes.
