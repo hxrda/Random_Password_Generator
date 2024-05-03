@@ -1,5 +1,3 @@
-//import { StatusBar } from "expo-status-bar";
-import { useState, useEffect } from "react";
 import {
 	StyleSheet,
 	View,
@@ -7,27 +5,13 @@ import {
 	FlatList,
 	TouchableOpacity,
 } from "react-native";
+import { Text, Icon, ListItem } from "@rneui/themed";
+import { Button } from "react-native-paper";
 
-import { Input, Text, Icon, ListItem } from "@rneui/themed";
-import { Switch, Snackbar, Button } from "react-native-paper";
+import { signOut } from "firebase/auth";
 
-import {
-	getDatabase,
-	ref,
-	set,
-	push,
-	onValue,
-	remove,
-} from "firebase/database";
-
-import { getAuth, signOut } from "firebase/auth";
-
-//>>>Pass user email here instead of id.
-//
-
+///// COMPONENT /////
 export default function Profile({
-	database,
-	userId,
 	setUserId,
 	setIsSignedIn,
 	userEmail,
@@ -44,24 +28,19 @@ export default function Profile({
 	];
 
 	//--Functions--//
-	/*
-	const handleLogout = () => {
-		//TBA
-	};
-	*/
 	const handleLogout = async () => {
 		try {
+			// Successful logout navigates back to the Login screen:
 			await signOut(auth);
-			// After successful logout, navigate back to the Login screen or perform any necessary actions
-			// For example, you can reset the user state
+
 			setIsSignedIn(false);
 			setUserId(null);
 			setUserEmail("");
 
 			console.log("Logout successful");
 		} catch (error) {
+			// Handle error:
 			console.error("Error signing out:", error);
-			// Handle error if needed
 		}
 	};
 
@@ -70,7 +49,7 @@ export default function Profile({
 		<View style={styles.container}>
 			<View style={styles.upperContainer}>
 				<Icon name="account-circle" size={100} color="#a9b1b6" />
-				<Text style={{ marginLeft: 12 }}>Hello {userEmail}!</Text>
+				<Text style={{ marginLeft: 12 }}>Hello, {userEmail} !</Text>
 			</View>
 
 			<FlatList

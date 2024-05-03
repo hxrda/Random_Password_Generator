@@ -1,65 +1,36 @@
-//Home component is initially rendered:
 import React, { useState, useEffect } from "react";
-//import { StatusBar } from "expo-status-bar";
 import {
 	StyleSheet,
 	View,
 	ScrollView,
-	FlatList,
 	StatusBar,
 	KeyboardAvoidingView,
 	Platform,
 } from "react-native";
-
-import { Input, Text, Icon, ListItem } from "@rneui/themed"; //Button for old buttons
-import {
-	Switch,
-	Snackbar,
-	Button,
-	Dialog,
-	Portal,
-	PaperProvider,
-} from "react-native-paper";
+import { Input, Text } from "@rneui/themed";
+import { Switch, Snackbar, Button, Dialog, Portal } from "react-native-paper";
 import Slider from "@react-native-community/slider";
 
-//import { Header } from "@rneui/themed";
-
-//OG status bar: <StatusBar style="auto" />
-
-//import { RSAKey } from "react-native-rsa";
 import CryptoJS from "crypto-js";
 import * as SecureStore from "expo-secure-store";
 
-import {
-	getDatabase,
-	ref,
-	set,
-	push,
-	onValue,
-	remove,
-} from "firebase/database";
+import { ref, push } from "firebase/database";
 
 import { API_URL } from "@env";
 
+///// COMPONENT /////
 export default function Home({ database, userId }) {
 	//--States--//
-	//Credentials
+	//Credentials:
 	const [record, setRecord] = useState({
 		provider: "",
 		userId: "",
 		cryptedPassword: "",
 		dateCreated: "",
 	});
-
-	//const [provider, setProvider] = React.useState("");
-	//const [userId, setUserId] = React.useState("");
 	const [generatedPassword, setGeneratedPassword] = React.useState("");
-	//const [cryptedPassword, setCryptedPassword] = React.useState("");
 
-	//Switches
-	//const [isSwitch1On, setIsSwitch1On] = React.useState(false);
-	//const [isSwitch2On, setIsSwitch2On] = React.useState(false);
-
+	//Switches:
 	const [isUpperCaseSwitchOn, setUpperCaseSwitchOn] = React.useState(false);
 	const [isLowerCaseSwitchOn, setLowerCaseSwitchOn] = React.useState(false);
 	const [isNumbersSwitchOn, setNumbersSwitchOn] = React.useState(false);
@@ -86,14 +57,11 @@ export default function Home({ database, userId }) {
 	const [saveDialogVisible, setSaveDialogVisible] = React.useState(false);
 	const dialogSaveAlert = "Please generate a password first.";
 
-	//Check that data for saving ok:
+	//Check requirement for saving data in db:
 	const [isPasswordGenerated, setIsPasswordGenerated] = useState(false);
 
-	//Additionals:
-	const [focusedInput, setFocusedInput] = useState(null);
-
-	//--Testing state updates--//
-	// Add useEffect hook to log the 'upper' state after every update
+	//--Testing--//
+	//Testing state updates:
 	useEffect(() => {
 		console.log("----NEW UPDATE ----");
 		console.log("isUpperCaseSwitchOn:", { isUpperCaseSwitchOn });
@@ -114,7 +82,6 @@ export default function Home({ database, userId }) {
 			record.provider,
 			record.userId,
 			generatedPassword,
-			//record.cryptedPassword,
 			record.dateCreated
 		);
 	}, [
@@ -131,8 +98,7 @@ export default function Home({ database, userId }) {
 	]);
 
 	//--Functions--//
-
-	//useEffect for date:
+	//Get current date after password generation & crypting:
 	useEffect(() => {
 		if (record.cryptedPassword) {
 			const currentDate = new Date();
@@ -143,9 +109,99 @@ export default function Home({ database, userId }) {
 		}
 	}, [record.cryptedPassword]);
 
-	//Handle snackbar:
-	const onToggleSnackBar = () => setSnackbarVisible(!snackbarVisible);
-	const onDismissSnackBar = () => setSnackbarVisible(false);
+	//Fetch API:
+	const generatePassword = () => {
+		// Check that at least one switch selection is on:
+		if (
+			!isUpperCaseSwitchOn &&
+			!isLowerCaseSwitchOn &&
+			!isNumbersSwitchOn &&
+			!isSpecialsSwitchOn
+		) {
+			// If no selection is on, display an alert & exit without proceeding to fetch:
+			showDialog();
+
+			return;
+		}
+
+		//If at least 1 switch selection is on, proceed to fetch:
+		fetch(
+			`${API_URL}?length=${sliderValue}&upper=${upper}&lower=${lower}&numbers=${numbers}&special=${special}&exclude=&repeat=1`
+		)
+			.then((response) => {
+				if (!response.ok)
+					throw new Error("Error in fetch: " + response.statusText);
+				return response.json();
+			})
+			.then(async (data) => {
+				const generatorResult = data[0].password;
+				setGeneratedPassword(generatorResult);
+				setIsPasswordGenerated(true);
+
+				try {
+					//Fetch secret key & handle crypting:
+					const secretKey = await SecureStore.getItemAsync(
+						`secretKey_${userId}`
+					);
+					if (!secretKey) {
+						console.error(
+							"Public key not found for user (Encryption): ",
+							userId
+						);
+						return;
+					}
+
+					//Encrypt generated password with secret key:
+					const encryptedPassword = CryptoJS.AES.encrypt(
+						generatorResult,
+						secretKey
+					).toString();
+
+					//Update record state obj. with encrypted password:
+					setRecord((prevRecord) => ({
+						...prevRecord,
+						cryptedPassword: encryptedPassword,
+					}));
+				} catch (error) {
+					console.error("Error retrieving secret key:", error);
+				}
+			})
+
+			.catch((err) => console.error(err));
+	};
+
+	//Save data to database:
+	const handleSave = async () => {
+		if (!isPasswordGenerated) {
+			// If password has not been generated, show dialog and return without proceeding:
+			showSaveDialog();
+			return;
+		}
+
+		// If password has been generated, proceed to save data:
+		push(ref(database, `/records/${userId}`), record);
+
+		//Snackbar confirmation response:
+		onToggleSnackBar();
+
+		//Empty the states:
+		setRecord({
+			provider: "",
+			userId: "",
+			cryptedPassword: "",
+			dateCreated: "",
+		});
+		setGeneratedPassword("");
+		setIsPasswordGenerated(false);
+		setUpperCaseSwitchOn(false);
+		setLowerCaseSwitchOn(false);
+		setNumbersSwitchOn(false);
+		setSpecialsSwitchOn(false);
+		setUpper("off");
+		setLower("off");
+		setNumbers("off");
+		setSpecial("off");
+	};
 
 	//Handle switch toggle:
 	const onToggleSwitch = (switchId) => {
@@ -177,6 +233,10 @@ export default function Home({ database, userId }) {
 		}
 	};
 
+	//Handle snackbar:
+	const onToggleSnackBar = () => setSnackbarVisible(!snackbarVisible);
+	const onDismissSnackBar = () => setSnackbarVisible(false);
+
 	//Handle dialogs:
 	const showDialog = () => setDialogVisible(true);
 	const hideDialog = () => setDialogVisible(false);
@@ -184,131 +244,26 @@ export default function Home({ database, userId }) {
 	const showSaveDialog = () => setSaveDialogVisible(true);
 	const hideSaveDialog = () => setSaveDialogVisible(false);
 
-	//Fetch API:
-	const generatePassword = () => {
-		// Check if at least one selection is on
-		if (
-			!isUpperCaseSwitchOn &&
-			!isLowerCaseSwitchOn &&
-			!isNumbersSwitchOn &&
-			!isSpecialsSwitchOn
-		) {
-			// If no selection is on, display an alert:
-			showDialog();
-
-			return; // Exit without proceeding to fetch.
-		}
-
-		//If at least 1 selection is on, proceed to fetch:
-		fetch(
-			`${API_URL}?length=${sliderValue}&upper=${upper}&lower=${lower}&numbers=${numbers}&special=${special}&exclude=&repeat=1`
-		)
-			.then((response) => {
-				if (!response.ok)
-					throw new Error("Error in fetch: " + response.statusText);
-				return response.json();
-			})
-			.then(async (data) => {
-				const generatorResult = data[0].password;
-				setGeneratedPassword(generatorResult);
-				setIsPasswordGenerated(true);
-
-				try {
-					//Fetch public key & Handle crypting:
-					const secretKey = await SecureStore.getItemAsync(
-						`secretKey_${userId}`
-					);
-					if (!secretKey) {
-						console.error("Public key not found for user, Encryption:", userId);
-						return;
-					}
-
-					/*
-				const publicKey = await SecureStore.getItemAsync(`publicKey_${userId}`);
-				if (!publicKey) {
-					console.error("Public key not found for user:", userId);
-					return;
-				}
-				*/
-
-					//Encrypt generated password:
-					//var CryptoJS = require("crypto-js");
-					const encryptedPassword = CryptoJS.AES.encrypt(
-						generatorResult,
-						secretKey // Use a secure key for encryption
-					).toString();
-
-					/*
-				const rsa = new RSAKey();
-				rsa.setPublicString(publicKey);
-
-				const encryptedPassword = rsa.encrypt(generatorResult);
-				*/
-
-					//Update record with encrypted password:
-					setRecord((prevRecord) => ({
-						...prevRecord,
-						cryptedPassword: encryptedPassword,
-					}));
-				} catch (error) {
-					console.error("Error retrieving secretKey:", error);
-				}
-				//
-			})
-
-			.catch((err) => console.error(err));
-	};
-
-	//Save data to Database:
-	const handleSave = async () => {
-		if (!isPasswordGenerated) {
-			// If password is not generated, show dialog and return
-			showSaveDialog();
-			return;
-		}
-
-		push(ref(database, `/records/${userId}`), record);
-
-		//Snackbar response:
-		onToggleSnackBar();
-
-		//Empty the states:
-		setRecord({
-			provider: "",
-			userId: "",
-			cryptedPassword: "",
-			dateCreated: "",
-		});
-		setGeneratedPassword("");
-		setIsPasswordGenerated(false);
-		setUpperCaseSwitchOn(false);
-		setLowerCaseSwitchOn(false);
-		setNumbersSwitchOn(false);
-		setSpecialsSwitchOn(false);
-		setUpper("off");
-		setLower("off");
-		setNumbers("off");
-		setSpecial("off");
-	};
-
-	const keyboardVerticalOffset = focusedInput ? 0 : 100;
-
 	//--Rendering--//
 	return (
 		<KeyboardAvoidingView
-			style={styles.container}
-			behavior={Platform.OS === "ios" ? "padding" : undefined}
-			keyboardVerticalOffset={keyboardVerticalOffset}
+			style={{ flex: 1 }}
+			behavior={Platform.OS === "ios" ? "padding" : null}
+			keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 100}
 		>
-			<View style={styles.container}>
+			<ScrollView
+				style={styles.container}
+				contentContainerStyle={{
+					alignItems: "center",
+					justifyContent: "center",
+				}}
+			>
 				<View style={styles.inputContainerStyle}>
 					<Input
 						label="Provider"
 						placeholder="provider name"
 						onChangeText={(value) => setRecord({ ...record, provider: value })}
 						value={record.provider}
-						onFocus={() => setFocusedInput("provider")}
-						onBlur={() => setFocusedInput(null)}
 						inputStyle={styles.inputStyle}
 						labelStyle={styles.labelStyle}
 					/>
@@ -317,8 +272,6 @@ export default function Home({ database, userId }) {
 						placeholder="username"
 						onChangeText={(value) => setRecord({ ...record, userId: value })}
 						value={record.userId}
-						onFocus={() => setFocusedInput("userId")}
-						onBlur={() => setFocusedInput(null)}
 						inputStyle={styles.inputStyle}
 						labelStyle={styles.labelStyle}
 					/>
@@ -377,11 +330,9 @@ export default function Home({ database, userId }) {
 					<Slider
 						style={{ width: 200, height: 40 }}
 						step={1}
+						//min-max range: 1-128
 						minimumValue={1}
 						maximumValue={26}
-						//min-max range: 1-128
-						//minimumTrackTintColor="#808080"
-						//maximumTrackTintColor="#000000"
 						minimumTrackTintColor="#211BBF"
 						thumbTintColor="#211BBF"
 						value={sliderValue}
@@ -406,64 +357,64 @@ export default function Home({ database, userId }) {
 						mode="contained"
 						onPress={handleSave}
 						buttonColor="#58184f"
-						contentStyle={{ width: 130 }}
+						contentStyle={{ width: 130, marginBottom: 2 }}
 					>
 						Save
 					</Button>
 				</View>
 
-				<View>
-					<Portal>
-						<Dialog
-							visible={dialogVisible}
-							onDismiss={hideDialog}
-							style={{ backgroundColor: "#efedf1" }}
-						>
-							<Dialog.Content>
-								<Text variant="bodyMedium">{dialogAlert}</Text>
-							</Dialog.Content>
-							<Dialog.Actions>
-								<Button onPress={hideDialog} labelStyle={{ color: "#581845" }}>
-									Close
-								</Button>
-							</Dialog.Actions>
-						</Dialog>
-					</Portal>
-				</View>
-
-				<View>
-					<Portal>
-						<Dialog
-							visible={saveDialogVisible}
-							onDismiss={hideSaveDialog}
-							style={{ backgroundColor: "#efedf1" }}
-						>
-							<Dialog.Content>
-								<Text variant="bodyMedium">{dialogSaveAlert}</Text>
-							</Dialog.Content>
-							<Dialog.Actions>
-								<Button
-									onPress={hideSaveDialog}
-									labelStyle={{ color: "#581845" }}
-								>
-									Close
-								</Button>
-							</Dialog.Actions>
-						</Dialog>
-					</Portal>
-				</View>
-
-				<Snackbar
-					visible={snackbarVisible}
-					onDismiss={onDismissSnackBar}
-					action={{
-						label: "OK",
-					}}
-				>
-					Record saved!
-				</Snackbar>
-
 				<StatusBar barStyle="#fff" />
+			</ScrollView>
+
+			<Snackbar
+				visible={snackbarVisible}
+				onDismiss={onDismissSnackBar}
+				action={{
+					label: "OK",
+				}}
+			>
+				Record saved!
+			</Snackbar>
+
+			<View>
+				<Portal>
+					<Dialog
+						visible={dialogVisible}
+						onDismiss={hideDialog}
+						style={{ backgroundColor: "#efedf1" }}
+					>
+						<Dialog.Content>
+							<Text variant="bodyMedium">{dialogAlert}</Text>
+						</Dialog.Content>
+						<Dialog.Actions>
+							<Button onPress={hideDialog} labelStyle={{ color: "#581845" }}>
+								Close
+							</Button>
+						</Dialog.Actions>
+					</Dialog>
+				</Portal>
+			</View>
+
+			<View>
+				<Portal>
+					<Dialog
+						visible={saveDialogVisible}
+						onDismiss={hideSaveDialog}
+						style={{ backgroundColor: "#efedf1" }}
+					>
+						<Dialog.Content>
+							<Text variant="bodyMedium">{dialogSaveAlert}</Text>
+						</Dialog.Content>
+						<Dialog.Actions>
+							<Button
+								onPress={hideSaveDialog}
+								labelStyle={{ color: "#581845" }}
+							>
+								Close
+							</Button>
+						</Dialog.Actions>
+					</Dialog>
+				</Portal>
 			</View>
 		</KeyboardAvoidingView>
 	);
@@ -473,13 +424,11 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		backgroundColor: "#fff",
-		alignItems: "center",
-		justifyContent: "center",
 	},
 	inputContainerStyle: {
 		width: 300,
 		fontSize: 10,
-		//marginTop: 25,
+		marginTop: 35,
 	},
 	switchContainerStyle: {
 		flexDirection: "row",
@@ -496,6 +445,6 @@ const styles = StyleSheet.create({
 	},
 	buttonContainerStyle: {
 		flexDirection: "row",
-		marginTop: 20,
+		marginTop: 22,
 	},
 });

@@ -1,6 +1,5 @@
-//import { StatusBar } from "expo-status-bar";
-import { useState, useEffect } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { StyleSheet } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -10,37 +9,9 @@ import Profile from "./components/Profile";
 import Login from "./components/Login";
 
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { Header, getHeaderTitle } from "@react-navigation/elements";
-import {
-	Switch,
-	Snackbar,
-	Button,
-	Dialog,
-	Portal,
-	PaperProvider,
-} from "react-native-paper";
+import { PaperProvider } from "react-native-paper";
 
-import { Feather } from "@expo/vector-icons";
-//import { Header } from "@rneui/themed";
-
-/*
- In order to persist auth state, install the package
-"@react-native-async-storage/async-storage" and provide it to
-initializeAuth:
-
-import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
-import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
-const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
-});
-
-*/
-
-// Import the functions you need from the SDKs you need
-import * as SecureStore from "expo-secure-store";
-import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
-//import { initializeAuth, getReactNativePersistence } from "firebase/auth";
-
+///// API /////
 import {
 	API_KEY,
 	AUTH_DOMAIN,
@@ -53,22 +24,8 @@ import {
 
 ///// DATABASE /////
 import { initializeApp } from "firebase/app";
-//import { getDatabase } from "firebase/database";
-import {
-	getDatabase,
-	ref,
-	set,
-	push,
-	onValue,
-	remove,
-} from "firebase/database";
-import {
-	getAuth,
-	initializeAuth,
-	getReactNativePersistence,
-} from "firebase/auth";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import { getDatabase } from "firebase/database";
+import { getAuth } from "firebase/auth";
 
 // The web app's Firebase configuration
 const firebaseConfig = {
@@ -81,24 +38,22 @@ const firebaseConfig = {
 	appId: `${APP_ID}`,
 };
 
-// Initialize Firebase (connection to project)
+// Initialize Firebase (connection to the project)
 const app = initializeApp(firebaseConfig);
 // Create connection to Database:
 const database = getDatabase(app);
 // Initialize Firebase Authentication and get a reference to the service
 const auth = getAuth(app);
 
-const Tab = createBottomTabNavigator(); //Returns nav object containing: Screen & Navigation components
+const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 ///// APP /////
 export default function App() {
 	//--States--//
 	const [isSignedIn, setIsSignedIn] = useState(false);
-	const [userId, setUserId] = useState(null); // State to hold the user ID
+	const [userId, setUserId] = useState(null);
 	const [userEmail, setUserEmail] = useState("");
-
-	//--Functions--//
 
 	//--Rendering--//
 	return (
@@ -106,11 +61,7 @@ export default function App() {
 			<NavigationContainer>
 				{!isSignedIn ? (
 					<Stack.Navigator>
-						<Stack.Screen
-							name="Login"
-							options={{ headerShown: false }}
-							//initialParams={{ setIsSignedIn: setIsSignedIn }}
-						>
+						<Stack.Screen name="Login" options={{ headerShown: false }}>
 							{(props) => (
 								<Login
 									{...props}
@@ -140,7 +91,6 @@ export default function App() {
 										: "person-circle-sharp";
 								}
 
-								// You can return any component that you like here!
 								return <Ionicons name={iconName} size={size} color={color} />;
 							},
 							tabBarActiveTintColor: "#211BBF",
@@ -174,11 +124,8 @@ export default function App() {
 
 						<Tab.Screen
 							name="Profile"
-							//component={Profile}
 							children={() => (
 								<Profile
-									database={database}
-									userId={userId}
 									setUserId={setUserId}
 									setIsSignedIn={setIsSignedIn}
 									userEmail={userEmail}

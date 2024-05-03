@@ -1,8 +1,4 @@
-//import { StatusBar } from "expo-status-bar";
-//import { useState, useEffect } from "react";
-//import { StyleSheet, Text, View, StatusBar, Button } from "react-native";
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import {
 	StyleSheet,
@@ -10,30 +6,19 @@ import {
 	Image,
 	KeyboardAvoidingView,
 	Platform,
-	TouchableWithoutFeedback,
-} from "react-native"; //Text removed
-//import { Image } from "@rneui/themed";
-import {
-	TextInput,
-	Text,
-	Button,
-	PaperProvider,
-	Modal,
-	Portal,
-} from "react-native-paper";
+	ScrollView,
+} from "react-native";
+import { TextInput, Text, Button, Modal, Portal } from "react-native-paper";
 
 import {
-	getAuth,
 	createUserWithEmailAndPassword,
 	signInWithEmailAndPassword,
 } from "firebase/auth";
 
-//import { RSAKey } from "react-native-rsa";
-//import RSAKey from "react-native-rsa/src/RSA";
 import * as SecureStore from "expo-secure-store";
-
 import * as Crypto from "expo-crypto";
 
+///// COMPONENT /////
 export default function Login({
 	setIsSignedIn,
 	setUserId,
@@ -49,96 +34,76 @@ export default function Login({
 	const [showPasswordRegister, setShowPasswordRegister] = useState(false);
 
 	//--Functions--//
-
 	//Login:
 	const handleLogin = () => {
 		signInWithEmailAndPassword(auth, emailLogin, passwordLogin)
 			.then((userCredential) => {
-				// Signed in successfully
+				// Successful login
 				const user = userCredential.user;
 				const userEmail = user.email;
 
 				setUserId(user.uid);
-				setIsSignedIn(true); // Update state upon successful login
 				setUserEmail(userEmail);
+				setIsSignedIn(true);
 			})
 			.catch((error) => {
 				// Handle login error
+				console.error("Invalid email or password");
+
+				/*
 				const errorCode = error.code;
 				const errorMessage = error.message;
-
 				console.error("Error signing in:", errorCode, errorMessage);
+				*/
 			});
 	};
 
-	//Register:
-
+	//Registration:
 	const handleRegister = async () => {
 		try {
+			// Successful registration
 			const userCredential = await createUserWithEmailAndPassword(
 				auth,
 				emailLogin,
 				passwordLogin
-			); // Location of createUserWithEmailAndPassword
+			);
 			const user = userCredential.user;
 			const userEmail = user.email;
 
-			// Generate and save RSA keys for the registered user
-			await generateRSAKeys(user.uid); // Location of generateRSAKeys
+			// Generate and save keys for the new registered users
+			await generateKeys(user.uid);
 
-			// Set the user ID state in App.js
 			setUserId(user.uid);
-
 			setUserEmail(userEmail);
 
-			setIsSignedIn(true); // Update state upon successful registration
-			setModalVisible(false); // Close modal after registration
+			setIsSignedIn(true);
+			setModalVisible(false);
 		} catch (error) {
+			//Handle registration error:
+			console.error("Invalid email address");
+
+			/*
 			const errorCode = error.code;
 			const errorMessage = error.message;
 			console.error("Error in registration:", errorCode, errorMessage);
+			*/
 		}
 	};
 
-	//Generate RSA keys:
-	//import RSAKey from "react-native-rsa/src/RSA";
-	const generateRSAKeys = async (userId) => {
+	//Generate a key:
+	const generateKeys = async (userId) => {
 		try {
-			/*
-			const RSAKey = require("react-native-rsa");
-			const bits = 1024; // Specify the bit length of the key pair
-			const exponent = "10001"; //must be a string. This is hex string. decimal = 65537
-
-			const rsa = new RSAKey();
-			rsa.generate(bits, exponent);
-
-			const publicKey = rsa.getPublicString(); // Get the public key as a string/Return json encoded string
-			const privateKey = rsa.getPrivateString(); // Get the private key as a string/Return json encoded string
-			*/
-
-			//const publicKey = crypto.randomBytes(32).toString("base64"); // Generate a random public key
-			//const privateKey = crypto.randomBytes(32).toString("base64"); // Generate a random private key
-
-			//Generate keys:
 			const secretKey = Crypto.randomUUID();
-			//const publicKey = Crypto.randomUUID();
-			//const privateKey = Crypto.randomUUID();
 
-			console.log("Secret key:", secretKey);
-			//console.log("Public key:", publicKey);
-			//console.log("Private key:", privateKey);
-
-			// Store the keys securely associated with the user ID
+			// Store the key associated with user ID:
 			await SecureStore.setItemAsync(`secretKey_${userId}`, secretKey);
-			//await SecureStore.setItemAsync(`publicKey_${userId}`, publicKey);
-			//await SecureStore.setItemAsync(`privateKey_${userId}`, privateKey);
 
 			console.log(
-				"RSA keys generated and saved successfully for user:",
+				"Secret key generated and saved successfully for user:",
 				userId
 			);
 		} catch (error) {
-			console.error("Error generating and saving RSA keys:", error);
+			console.error("Error generating and saving a secret key:", error);
 		}
 	};
 
@@ -146,7 +111,7 @@ export default function Login({
 	const hideModal = () => setModalVisible(false);
 	const showModal = () => {
 		console.log("Modal pressed");
-		//setShowPassword(!showPassword);
+
 		setModalVisible(true);
 	};
 
@@ -157,15 +122,19 @@ export default function Login({
 		marginRight: 10,
 	};
 
-	//<KeyboardAvoidingView behavior="height">
-
 	return (
 		<KeyboardAvoidingView
 			behavior={Platform.OS === "ios" ? "padding" : undefined}
 			style={styles.container}
 			keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 100}
 		>
-			<View style={styles.container}>
+			<ScrollView
+				style={styles.container}
+				contentContainerStyle={{
+					alignItems: "center",
+					justifyContent: "center",
+				}}
+			>
 				<Image
 					style={{ marginTop: 90, marginBottom: 10, width: 250, height: 300 }}
 					source={require("../logos/logo.png")}
@@ -201,7 +170,6 @@ export default function Login({
 						secureTextEntry={!showPasswordLogin}
 						right={
 							<TextInput.Icon
-								//icon="eye"
 								icon={showPasswordLogin ? "eye-off" : "eye"}
 								onPress={() => setShowPasswordLogin(!showPasswordLogin)}
 							/>
@@ -223,7 +191,6 @@ export default function Login({
 				<Button
 					mode="text"
 					onPress={showModal}
-					//contentStyle={{ textColor: "#411858" }}
 					textColor="#411858"
 					rippleColor="#fff"
 				>
@@ -235,11 +202,8 @@ export default function Login({
 				<Portal>
 					<Modal
 						visible={modalVisible}
-						//transparent={true}
 						onDismiss={hideModal}
 						contentContainerStyle={containerStyle}
-
-						//onRequestClose={() => setModalVisible(false)}
 					>
 						<View style={styles.modalContainer}>
 							<Text style={{ fontSize: 18, marginBottom: 20 }}>Sign Up</Text>
@@ -261,7 +225,6 @@ export default function Login({
 								autoCapitalize="none"
 								right={
 									<TextInput.Icon
-										//icon="eye"
 										icon={showPasswordRegister ? "eye-off" : "eye"}
 										onPress={() =>
 											setShowPasswordRegister(!showPasswordRegister)
@@ -273,7 +236,6 @@ export default function Login({
 								mode="contained"
 								onPress={handleRegister}
 								buttonColor="#58184f"
-								//contentStyle={{ width: 130 }}
 							>
 								REGISTER
 							</Button>
@@ -282,28 +244,17 @@ export default function Login({
 				</Portal>
 
 				<StatusBar style="auto" />
-			</View>
+			</ScrollView>
 		</KeyboardAvoidingView>
 	);
 }
 
 const styles = StyleSheet.create({
 	container: {
-		//flex: 1,
 		backgroundColor: "#fff",
-		alignItems: "center",
-		justifyContent: "center",
 	},
 	textInputField: {
-		//width: 280,
-		//borderRadius: 40,
-		//marginTop: 10,
 		backgroundColor: "#f9f9fb",
-		//marginBottom: 10,
 	},
-	modalContainer: {
-		//width: "80%"
-	},
+	modalContainer: {},
 });
-
-//<Text style={{ color: "#411858" }}>Register here</Text>

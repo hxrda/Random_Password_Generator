@@ -1,34 +1,18 @@
-//import { StatusBar } from "expo-status-bar";
 import { useState, useEffect } from "react";
 import { StyleSheet, View, StatusBar, FlatList } from "react-native";
-//import Clipboard from "@react-native-clipboard/clipboard";
+import { Button, Icon, ListItem } from "@rneui/themed";
+import { Snackbar, ActivityIndicator } from "react-native-paper";
 import * as Clipboard from "expo-clipboard";
 
-import { Input, Text, Button, Icon, ListItem } from "@rneui/themed";
-import {
-	Switch,
-	Snackbar,
-	ActivityIndicator,
-	MD2Colors,
-} from "react-native-paper";
-
-import {
-	getDatabase,
-	ref,
-	set,
-	push,
-	onValue,
-	remove,
-} from "firebase/database";
-
-//import CryptoJS from "crypto-js";
 import * as SecureStore from "expo-secure-store";
 
+import { ref, onValue, remove } from "firebase/database";
+
+///// COMPONENT /////
 export default function Vault({ database, userId }) {
 	//--States--//
 	//Credentials:
 	const [records, setRecords] = useState([]);
-	const [decryptedPassword, setDecryptedPassword] = useState([]);
 
 	//Snackbar:
 	const [snackbarVisible, setSnackbarVisible] = useState(false);
@@ -39,10 +23,120 @@ export default function Vault({ database, userId }) {
 	//Activity indicator:
 	const [loading, setLoading] = useState(false);
 
-	//Additionals:
-	//const [daysSinceGenerated, setDaysSinceGenerated] = useState(0); ??
-
 	//--Functions--//
+	//Read data:
+	useEffect(() => {
+		setLoading(true);
+
+		onValue(ref(database, `/records/${userId}`), async (snapshot) => {
+			try {
+				if (snapshot.exists()) {
+					const data = snapshot.val();
+					const keys = Object.keys(data);
+					console.log(Object.keys(data));
+					console.log(Object.values(data));
+					console.log(Object.entries(data));
+
+					const dataWithKeys = await Promise.all(
+						Object.values(data).map(async (obj, index) => {
+							//Calculate days difference before saving it & db data to dataWithKeys
+							const differenceInDays = calculateDaysDifference(obj.dateCreated);
+
+							//Decrypt password before saving it & db data to dataWithKeys:
+							const decryptedPassword = await decryptPassword(
+								obj.cryptedPassword
+							);
+
+							return {
+								...obj,
+								key: keys[index],
+								daysDiff: differenceInDays,
+								decryptedPassword: decryptedPassword,
+							};
+						})
+					);
+
+					setRecords(dataWithKeys);
+
+					setLoading(false);
+					console.log(records);
+				} else {
+					console.log("No data available");
+					setRecords([]);
+					setLoading(false);
+				}
+			} catch (error) {
+				console.error("Error in fetching data", error);
+				setLoading(false);
+			}
+		});
+	}, []);
+
+	//Delete data:
+	const handleDelete = (key) => {
+		if (key) {
+			remove(ref(database, `/records/${userId}/${key}`))
+				.then(() => {
+					console.log("Item deleted succesfully");
+
+					//Snackbar confirmation:
+					onToggleSnackBar();
+				})
+				.catch((error) => console.error("Error in deleting item: ", error));
+		}
+	};
+
+	//Handle date calculation:
+	const calculateDaysDifference = (dateCreated) => {
+		try {
+			const currentDate = new Date();
+			const recordDate = new Date(dateCreated);
+
+			// Difference in milliseconds (ms):
+			const timeDifferenceInMillis =
+				currentDate.getTime() - recordDate.getTime();
+
+			// Convert ms to days
+			const millisecondsPerDay = 1000 * 60 * 60 * 24;
+			const differenceInDays = Math.floor(
+				timeDifferenceInMillis / millisecondsPerDay
+			);
+
+			console.log("Days difference:", differenceInDays);
+			return differenceInDays;
+		} catch (error) {
+			console.error("Error calculating difference in days:", error);
+			return null;
+		}
+	};
+
+	//Handle decrypting the password:
+	const decryptPassword = async (encrypted) => {
+		try {
+			//Get key:
+			const secretKey = await SecureStore.getItemAsync(`secretKey_${userId}`);
+			if (!secretKey) {
+				console.error("Public key not found for user, Decryption:", userId);
+				return "";
+			}
+
+			//Decrypt:
+			var CryptoJS = require("crypto-js");
+			const bytes = CryptoJS.AES.decrypt(encrypted, secretKey);
+			var decrypted = bytes.toString(CryptoJS.enc.Utf8);
+
+			if (!decrypted) {
+				console.error("Decryption failed or invalid data");
+				return "";
+			}
+
+			return decrypted;
+		} catch (error) {
+			console.error("Error decrypting password:", error);
+			return "";
+		}
+	};
+
 	//Handle snackbar:
 	const onToggleSnackBar = () => setSnackbarVisible(!snackbarVisible);
 	const onDismissSnackBar = () => setSnackbarVisible(false);
@@ -58,146 +152,6 @@ export default function Vault({ database, userId }) {
 	//Handle clipboard (copy functionality):
 	const copyToClipboard = async (copiedPassword) => {
 		await Clipboard.setStringAsync(copiedPassword);
-	};
-
-	//Handle date calculation:
-	const calculateDaysDifference = (dateCreated) => {
-		try {
-			const currentDate = new Date();
-			const recordDate = new Date(dateCreated);
-
-			// Difference in milliseconds (ms)
-			const timeDifferenceInMillis =
-				currentDate.getTime() - recordDate.getTime();
-
-			// Ms converted to days
-			const millisecondsPerDay = 1000 * 60 * 60 * 24;
-			const differenceInDays = Math.floor(
-				timeDifferenceInMillis / millisecondsPerDay
-			);
-
-			console.log("Days difference:", differenceInDays);
-			return differenceInDays;
-		} catch (error) {
-			console.error("Error calculating days difference:", error);
-			return null;
-		}
-	};
-
-	//Handle decrypting password:
-	const decryptPassword = async (encrypted) => {
-		try {
-			//Get key:
-			const secretKey = await SecureStore.getItemAsync(`secretKey_${userId}`);
-			if (!secretKey) {
-				console.error("Public key not found for user, Decryption:", userId);
-				return "";
-			}
-
-			//Decrypt:
-			var CryptoJS = require("crypto-js");
-			const bytes = CryptoJS.AES.decrypt(encrypted, secretKey);
-			var decrypted = bytes.toString(CryptoJS.enc.Utf8);
-
-			//return bytes.toString(CryptoJS.enc.Utf8);
-			if (!decrypted) {
-				console.error("Decryption failed or invalid data");
-				return ""; // Return empty string on decryption failure or invalid data
-			}
-
-			return decrypted;
-		} catch (error) {
-			console.error("Error decrypting password:", error);
-			return ""; // Return empty string on decryption error
-		}
-	};
-
-	//Read data:
-	useEffect(() => {
-		setLoading(true);
-
-		onValue(ref(database, `/records/${userId}`), async (snapshot) => {
-			try {
-				if (snapshot.exists()) {
-					const data = snapshot.val();
-					const keys = Object.keys(data);
-					console.log(Object.keys(data));
-					console.log(Object.values(data));
-					console.log(Object.entries(data));
-
-					//>>>> Handle decrypting password!!!
-
-					//V2
-					const dataWithKeys = await Promise.all(
-						Object.values(data).map(async (obj, index) => {
-							//Calc days difference before storing it in to data with keys
-							const differenceInDays = calculateDaysDifference(obj.dateCreated);
-
-							// Decrypt password
-							const decryptedPassword = await decryptPassword(
-								obj.cryptedPassword
-							);
-
-							return {
-								...obj,
-								key: keys[index],
-								daysDiff: differenceInDays,
-								decryptedPassword: decryptedPassword,
-							};
-						})
-					);
-
-					// Decrypt the password before storing it in dataWithKeys
-					/*
-					const decryptedPassword = decryptPassword(
-						dataWithKeys.cryptedPassword
-					);
-					*/
-
-					//V1
-					//Combine keys with data:
-					/*
-					const dataWithKeys = Object.values(data).map((obj, index) => {
-						return { ...obj, key: keys[index] };
-					});
-					*/
-
-					//Fetch keys from the database & iterate (map) over each of them:
-					/*
-					const thingsWithKeys = Object.keys(data).map((key) => ({
-						...data[key], //get the properties associated with each key
-						key: key, //key property for the key
-					}));
-					*/
-					setRecords(dataWithKeys);
-					//setDecryptedPassword(decryptedPassword);
-					setLoading(false);
-					console.log(records);
-				} else {
-					console.log("No data available");
-					setRecords([]);
-					setLoading(false);
-				}
-			} catch (error) {
-				console.error("Error in fetching data", error);
-				setLoading(false);
-			}
-		});
-	}, []);
-
-	//push(ref(database, `/records/${userId}`), record);
-	//Delete data:
-	const handleDelete = (key) => {
-		if (key) {
-			remove(ref(database, `/records/${userId}/${key}`))
-				.then(() => {
-					console.log("Item deleted succesfully");
-
-					//Snackbar confirmation:
-					onToggleSnackBar();
-				})
-				.catch((error) => console.error("Error in deleting item: ", error));
-		}
 	};
 
 	//--Rendering--//
